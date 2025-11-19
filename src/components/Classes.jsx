@@ -1,5 +1,9 @@
-export default function Classes(props) {
-    return <div>
-        <h1>Classes Shopping!</h1>
-    </div>
-}
+export default function Classes() {
+    return (
+      <div style={{ padding: "2rem" }}>
+        <h2>Classes Shopping</h2>
+        <p>Browse CS classes and add them to favorites.</p>
+      </div>
+    );
+  }
+  

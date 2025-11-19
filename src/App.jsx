@@ -1,13 +1,26 @@
-import { HashRouter, Route, Routes } from 'react-router'
-import Home from './components/Home'
-import './App.css'
+import { HashRouter, Routes, Route } from "react-router-dom";
+import MainNav from "./components/MainNav";
+import Home from "./components/Home";
+import Classes from "./components/Classes";
+import Favorites from "./components/Favorites";
+import Quiz from "./components/Quiz";
+import Scheduling from "./components/Scheduling";
+import Login from "./components/Login";
 
 function App() {
-  return <HashRouter>
+  return (
+    <HashRouter>
+      <MainNav />
       <Routes>
-          <Route path="/" element={<Home />}> </Route>
+        <Route path="/" element={<Home />} />
+        <Route path="/classes" element={<Classes />} />
+        <Route path="/favorites" element={<Favorites />} />
+        <Route path="/quiz" element={<Quiz />} />
+        <Route path="/schedule" element={<Scheduling />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
-  </HashRouter>
+    </HashRouter>
+  );
 }
 
-export default App
+export default App;
