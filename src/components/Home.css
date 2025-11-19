@@ -1,0 +1,97 @@
+.home-hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  
+  min-height: 80vh; 
+
+  
+  background-image: 
+  /*add gray over photo, hard to read*/
+    linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), 
+    url('../assets/madison.jpg');
+  background-size: cover;
+  background-position: center;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.home-hero h1 {
+  font-size: 3.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.home-hero p {
+  font-size: 1.25rem;
+  color: #c0c0c0;
+}
+
+
+
+.features-section {
+  padding: 4rem 2rem;
+  text-align: center;
+  background-color: #f4f4f4;
+  color: #333;
+}
+
+.features-section h2 {
+  font-size: 2.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); 
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.feature-card {
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  text-align: left;
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  font-size: 1.4rem;
+  color: #242424;
+}
+
+.spotlight-section {
+  padding: 4rem 2rem;
+  background-color: #2a2a2a; 
+  color: #f0f0f0;
+}
+
+.spotlight-content {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.spotlight-text {
+  flex: 1;
+  font-size: 1.1rem;
+}
+
+.spotlight-text h2 {
+  font-size: 2.5rem;
+}
+
+.spotlight-image {
+  flex: 1;
+}
+
+.spotlight-image img {
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
