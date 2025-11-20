@@ -12,7 +12,9 @@ function App() {
   const [favorites, setFavorites] = useState([]);
 
   const handleToggleFavorite = (course) => {
+    console.log("Toggling favorite for:", course);
     const isFavorite = favorites.some((fav) => fav.id === course.id);
+    
 
     if (isFavorite) {
       setFavorites(favorites.filter((fav) => fav.id !== course.id));
