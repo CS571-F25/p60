@@ -4,6 +4,7 @@ import './Classes.css';
 
 export default function Classes({ favorites, onToggleFavorite }) {
   
+  const [searchQuery, setSearchQuery] = useState("");
   const [courses, setCourses] = useState([]);
   const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(true);
@@ -48,7 +49,12 @@ export default function Classes({ favorites, onToggleFavorite }) {
     <div className="classes-page">
       
       <div className="filter-bar">
-        <input type="text" placeholder="Search by name or ID..." />
+        <input 
+          type="text" 
+          placeholder="Search by name or ID..." 
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
         <select name="subject">
           <option value="">All Subjects</option>
           <option value="cs">Computer Science</option>
@@ -64,7 +70,14 @@ export default function Classes({ favorites, onToggleFavorite }) {
         {!loading && errorMsg && <p className="status-text">{errorMsg}</p>}
 
         <div className="class-grid">
-          {!loading && !errorMsg && courses.map((course) => {
+          {!loading && !errorMsg && courses
+          .filter((course) => {
+            const query = searchQuery.toLowerCase();
+            const name = (course.name || "").toLowerCase();
+            const code = (course.code || course.id || "").toLowerCase();
+            return name.includes(query) || code.includes(query);
+          })
+        .map((course) => {
             
             const courseForCard = {
               id: course.code || course.id,
