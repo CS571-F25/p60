@@ -2,9 +2,9 @@
 import { useEffect, useState } from "react";
 import ClassCard from "./ClassCard";
 import "./Classes.css";
+import { getCreditsFromCode } from "../utils/credits";
 
-// --- Helpers to clean prereqs ---
-
+// ====== prereq cleanup helpers ======
 const PREREQ_ALIASES = {
   "COMP SCI 102": "COMP SCI / LIS 102",
   "MATH/COMP SCI 240": "COMP SCI / MATH 240",
@@ -30,21 +30,35 @@ function cleanPrereqs(rawList = []) {
     .filter((p) => p && !LEGACY_CS.has(p));
 }
 
-// Helper to pull array out of bucket response
-function extractBucketArray(data) {
-  if (data && data.results && typeof data.results === "object") {
-    const keys = Object.keys(data.results);
-    if (keys.length > 0 && Array.isArray(data.results[keys[0]])) {
-      return data.results[keys[0]];
+// Helper to safely dig into bucket JSON
+function extractBucketArray(json) {
+  if (json && json.results && typeof json.results === "object") {
+    const keys = Object.keys(json.results);
+    if (keys.length > 0 && Array.isArray(json.results[keys[0]])) {
+      return json.results[keys[0]];
     }
   }
   return [];
 }
 
+// Turn raw API course into what ClassCard expects
+function toCardCourse(rawCourse) {
+  const id = rawCourse.code || rawCourse.id;
+  return {
+    id,
+    title: rawCourse.name || "Untitled Course",
+    desc: rawCourse.description || "No description available.",
+    category: rawCourse.category || null,
+    prereqs: cleanPrereqs(rawCourse.preReq || rawCourse.prereq || []),
+    credits: getCreditsFromCode(id),
+  };
+}
+
+// ====== main component ======
 export default function Classes({ favorites, onToggleFavorite }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [subjectFilter, setSubjectFilter] = useState("all"); // all | cs | external
-  const [courses, setCourses] = useState([]);
+  const [subjectFilter, setSubjectFilter] = useState(""); // "" = all, "cs" = CS only
+  const [csCourses, setCsCourses] = useState([]);
   const [externalCourses, setExternalCourses] = useState([]);
   const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(true);
@@ -70,28 +84,34 @@ export default function Classes({ favorites, onToggleFavorite }) {
           }),
         ]);
 
-        if (!csRes.ok || !extRes.ok) {
-          throw new Error(
-            `API error: cs=${csRes.status} external=${extRes.status}`
+        if (!csRes.ok) {
+          throw new Error(`CS API error: ${csRes.status} ${csRes.statusText}`);
+        }
+        if (!extRes.ok) {
+          // external failing shouldn’t kill the whole page; log & continue
+          console.warn(
+            `External API error: ${extRes.status} ${extRes.statusText}`
           );
         }
 
         const csJson = await csRes.json();
-        const extJson = await extRes.json();
+        const extJson = extRes.ok ? await extRes.json() : null;
 
-        const csArray = extractBucketArray(csJson);
-        const extArray = extractBucketArray(extJson);
+        const csLoaded = extractBucketArray(csJson);
+        const extLoaded = extJson ? extractBucketArray(extJson) : [];
 
-        setCourses(csArray);
-        setExternalCourses(extArray);
+        setCsCourses(csLoaded);
+        setExternalCourses(extLoaded);
 
-        if (csArray.length === 0 && extArray.length === 0) {
+        if (csLoaded.length === 0 && extLoaded.length === 0) {
           setErrorMsg("No courses found.");
+        } else {
+          setErrorMsg("");
         }
       } catch (err) {
         console.error(err);
         setErrorMsg("Could not load courses. Please try again later.");
-        setCourses([]);
+        setCsCourses([]);
         setExternalCourses([]);
       } finally {
         setLoading(false);
@@ -103,25 +123,39 @@ export default function Classes({ favorites, onToggleFavorite }) {
 
   const query = searchQuery.toLowerCase();
 
-  const filteredCsCourses = courses.filter((course) => {
-    if (subjectFilter === "external") return false;
-
+  const matchesSearch = (course) => {
     const name = (course.name || "").toLowerCase();
     const code = (course.code || course.id || "").toLowerCase();
     return name.includes(query) || code.includes(query);
-  });
+  };
 
-  const filteredExternalCourses = externalCourses.filter((course) => {
-    if (subjectFilter === "cs") return false;
+  // CS courses obey subject filter
+  const visibleCs = (!loading && !errorMsg ? csCourses : []).filter(
+    (course) => {
+      if (!matchesSearch(course)) return false;
+      const isCsSubject = (course.code || "").startsWith("COMP SCI");
+      if (subjectFilter === "cs") {
+        return isCsSubject;
+      }
+      // "All Subjects" -> include all CS bucket courses
+      return true;
+    }
+  );
 
-    const name = (course.name || "").toLowerCase();
-    const code = (course.code || course.id || "").toLowerCase();
-    return name.includes(query) || code.includes(query);
-  });
+  // External prereq courses only show when "All Subjects" is selected
+  const visibleExternal =
+    !loading && !errorMsg && subjectFilter === ""
+      ? externalCourses.filter(matchesSearch)
+      : [];
+
+  const visibleCourses = [
+    ...visibleCs.map(toCardCourse),
+    ...visibleExternal.map(toCardCourse),
+  ];
 
   return (
     <div className="classes-page">
-      {/* Filter bar */}
+      {/* filter bar */}
       <div className="filter-bar">
         <input
           type="text"
@@ -135,96 +169,36 @@ export default function Classes({ favorites, onToggleFavorite }) {
           value={subjectFilter}
           onChange={(e) => setSubjectFilter(e.target.value)}
         >
-          <option value="all">All Subjects</option>
+          <option value="">All Subjects</option>
           <option value="cs">Computer Science</option>
-          <option value="external">External / Non-CS</option>
         </select>
+        {/* Gen Ed filter intentionally removed */}
       </div>
 
       <div className="class-grid-container">
         {loading && <p className="status-text">Loading courses…</p>}
-        {!loading && errorMsg && <p className="status-text">{errorMsg}</p>}
-
-        {!loading && !errorMsg && (
-          <>
-            {/* CS section */}
-            {filteredCsCourses.length > 0 && (
-              <>
-                <h2 className="section-title">Computer Science Courses</h2>
-                <div className="class-grid">
-                  {filteredCsCourses.map((course) => {
-                    const courseForCard = {
-                      id: course.code || course.id,
-                      title: course.name || "Untitled Course",
-                      desc: course.description || "No description available.",
-                      category: course.category || null,
-                      prereqs: cleanPrereqs(
-                        course.preReq || course.prereq || []
-                      ),
-                    };
-
-                    const isFavorite = favorites.some(
-                      (fav) => fav.id === courseForCard.id
-                    );
-
-                    return (
-                      <ClassCard
-                        key={courseForCard.id}
-                        course={courseForCard}
-                        isFavorite={isFavorite}
-                        onToggleFavorite={onToggleFavorite}
-                      />
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
-            {/* External section */}
-            {filteredExternalCourses.length > 0 && (
-              <>
-                <h2 className="section-title">
-                  Related Non-CS / External Courses
-                </h2>
-                <div className="class-grid">
-                  {filteredExternalCourses.map((course) => {
-                    const courseForCard = {
-                      id: course.code || course.id,
-                      title: course.name || "Untitled Course",
-                      desc: course.description || "No description available.",
-                      category: course.category || "External Prerequisite",
-                      prereqs: cleanPrereqs(
-                        course.preReq || course.prereq || []
-                      ),
-                    };
-
-                    const isFavorite = favorites.some(
-                      (fav) => fav.id === courseForCard.id
-                    );
-
-                    return (
-                      <ClassCard
-                        key={courseForCard.id}
-                        course={courseForCard}
-                        isFavorite={isFavorite}
-                        onToggleFavorite={onToggleFavorite}
-                      />
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
-            {!filteredCsCourses.length &&
-              !filteredExternalCourses.length &&
-              !loading &&
-              !errorMsg && (
-                <p className="status-text">
-                  No courses match your current filters.
-                </p>
-              )}
-          </>
+        {!loading && errorMsg && (
+          <p className="status-text">{errorMsg}</p>
         )}
+
+        <div className="class-grid">
+          {!loading &&
+            !errorMsg &&
+            visibleCourses.map((courseForCard) => {
+              const isFavorite = favorites.some(
+                (fav) => fav.id === courseForCard.id
+              );
+
+              return (
+                <ClassCard
+                  key={courseForCard.id}
+                  course={courseForCard}
+                  isFavorite={isFavorite}
+                  onToggleFavorite={onToggleFavorite}
+                />
+              );
+            })}
+        </div>
       </div>
     </div>
   );

@@ -1,33 +1,41 @@
 import React from 'react';
 import './Classes.css';
 
-
 export default function ClassCard({ course, isFavorite, onToggleFavorite }) {
   return (
     <div className="class-card">
       <div className="card-header">
         <span className="course-id">{course.id}</span>
       </div>
+
       <h3 className="course-title">{course.title}</h3>
       <p className="course-desc">{course.desc}</p>
-      
+
       <div className="card-footer">
+        {/* CATEGORY */}
         {course.category && (
           <span className="course-tag category-tag">
             {course.category}
           </span>
         )}
-        
+
+        {/* CREDITS — NEW */}
+        {typeof course.credits === "number" && (
+          <span className="course-tag credit-tag">
+            {course.credits} credit{course.credits !== 1 ? "s" : ""}
+          </span>
+        )}
+
+        {/* PREREQS */}
         {course.prereqs.map((prereq) => (
           <span key={prereq} className="course-tag prereq-tag">
             {prereq}
           </span>
         ))}
       </div>
-      
+
       <button 
         className={`fav-button ${isFavorite ? 'active' : ''}`}
-        
         onClick={() => onToggleFavorite(course)}
       >
         ♥

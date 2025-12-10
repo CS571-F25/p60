@@ -1,4 +1,5 @@
-import { HashRouter, Routes, Route } from "react-router-dom";
+// App.jsx
+import { Routes, Route } from "react-router-dom";
 import { useState, useEffect } from "react";
 import MainNav from "./components/MainNav";
 import Home from "./components/Home";
@@ -24,13 +25,11 @@ function loadFavoritesForUser(username) {
 }
 
 function App() {
-  // who is logged in?
   const [currentUser, setCurrentUser] = useState(() => {
     if (typeof window === "undefined") return null;
     return localStorage.getItem(CURRENT_USER_KEY);
   });
 
-  // favorites for current user
   const [favorites, setFavorites] = useState(() =>
     loadFavoritesForUser(
       typeof window !== "undefined"
@@ -39,19 +38,18 @@ function App() {
     )
   );
 
-  // keep currentUser in localStorage
+  // Keep currentUser in localStorage
   useEffect(() => {
     if (!currentUser) {
       localStorage.removeItem(CURRENT_USER_KEY);
-      setFavorites([]); // no user → no favorites
+      setFavorites([]); 
     } else {
       localStorage.setItem(CURRENT_USER_KEY, currentUser);
-      // load that user’s favorites when they log in
       setFavorites(loadFavoritesForUser(currentUser));
     }
   }, [currentUser]);
 
-  // save favorites when they change
+  // Save favorites when they change
   useEffect(() => {
     if (!currentUser) return;
     try {
@@ -74,22 +72,19 @@ function App() {
     }
   };
 
-  const handleLogin = (username) => {
-    setCurrentUser(username);
-  };
-
   const handleLogout = () => {
     setCurrentUser(null);
     setFavorites([]);
   };
 
   return (
-    <HashRouter>
+    <>
       <MainNav
         isLoggedIn={!!currentUser}
         currentUser={currentUser}
         onLogout={handleLogout}
       />
+
       <Routes>
         <Route path="/" element={<Home />} />
 
@@ -102,6 +97,7 @@ function App() {
             />
           }
         />
+
         <Route
           path="/favorites"
           element={
@@ -112,19 +108,30 @@ function App() {
           }
         />
 
-        <Route path="/quiz" element={<Quiz />} />
-        <Route path="/schedule" element={<Scheduling />} />
+        {/* FIXED → Quiz must receive currentUser */}
+        <Route path="/quiz" element={<Quiz currentUser={currentUser} />} />
+
+        <Route
+          path="/schedule"
+          element={
+            <Scheduling
+              favorites={favorites}
+              currentUser={currentUser}
+            />
+          }
+        />
+
         <Route
           path="/login"
           element={
             <Login
-              onLogin={handleLogin}
+              onLogin={(u) => setCurrentUser(u)}
               currentUser={currentUser}
             />
           }
         />
       </Routes>
-    </HashRouter>
+    </>
   );
 }
 
