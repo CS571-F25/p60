@@ -1,5 +1,6 @@
 import './Home.css'; 
 import MorgImage from '../assets/morg.jpg';
+import { Link } from 'react-router-dom'; // Added Import
 
 export default function Home() {
   return (
@@ -14,18 +15,28 @@ export default function Home() {
       <section className="features-section">
         <h2>Everything You Need to Graduate</h2>
         <div className="features-grid">
-          <div className="feature-card">
-            <h3>Explore Course Catalogs</h3>
-            <p>Browse all required classes, electives, and gen-eds. Expand any course to see its full description and prerequisites.</p>
-          </div>
-          <div className="feature-card">
-            <h3>Generate Your Schedule</h3>
-            <p>Tell us your remaining semesters and target credits, and we'll generate a valid plan that follows all class dependencies.</p>
-          </div>
-          <div className="feature-card">
-            <h3>Track, Quiz, & Customize</h3>
-            <p>Save favorites, track completed courses, and even take a quiz to get personalized elective suggestions.</p>
-          </div>
+          
+          <Link to="/classes" className="feature-link">
+            <div className="feature-card">
+              <h3>Explore Course Catalogs</h3>
+              <p>Browse all required classes, electives, and gen-eds. Expand any course to see its full description and prerequisites.</p>
+            </div>
+          </Link>
+
+          <Link to="/schedule" className="feature-link">
+            <div className="feature-card">
+              <h3>Generate Your Schedule</h3>
+              <p>Tell us your remaining semesters and target credits, and we'll generate a valid plan that follows all class dependencies.</p>
+            </div>
+          </Link>
+
+          <Link to="/quiz" className="feature-link">
+            <div className="feature-card">
+              <h3>Track, Quiz, & Customize</h3>
+              <p>Save favorites, track completed courses, and even take a quiz to get personalized elective suggestions.</p>
+            </div>
+          </Link>
+
         </div>
       </section>
 
