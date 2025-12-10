@@ -4,7 +4,7 @@ import { getCreditsFromCode } from "../utils/credits";
 import "./Scheduling.css";
 
 /**
- * Track → preferred course codes.
+ * Track → preferred course codes (used only to tag "quiz" favorites).
  */
 const TRACK_PREF_CODES = {
   frontend: ["COMP SCI 571", "COMP SCI 506", "COMP SCI 579", "COMP SCI 412"],
@@ -14,32 +14,32 @@ const TRACK_PREF_CODES = {
 };
 
 /**
- * Set of course codes that count toward the CS major requirements.
- * (Basic CS, Calc, Linear Algebra, Prob/Stat, Theory, Software & HW,
- * Applications, and Electives buckets from the Guide.)
+ * Normalize a course code so comparisons are consistent.
+ * Example: "comp sci 300" → "COMP SCI 300"
  */
-const MAJOR_COURSE_CODES = new Set([
-  // Basic Computer Sciences
+function norm(code) {
+  return (code || "").replace(/\s+/g, " ").trim().toUpperCase();
+}
+
+/**
+ * Buckets based on the requirement sections you screenshotted.
+ * These are *options*, not all of them must be taken.
+ */
+
+// Basic Computer Sciences (core)
+const CORE_CS = [
   "COMP SCI 240",
   "COMP SCI 252",
   "COMP SCI 300",
   "COMP SCI 354",
   "COMP SCI 400",
+];
 
-  // Basic Calculus sequences
-  "MATH 221",
-  "MATH 222",
-  "MATH 171",
-  "MATH 217",
+// Theory of CS
+const THEORY_OPTIONS = ["COMP SCI 577", "COMP SCI 520"];
 
-  // Additional Mathematics – Linear Algebra options
-  "MATH 320",
-  "MATH 340",
-  "MATH 345",
-  "MATH 341",
-  "MATH 375",
-
-  // Probability or Statistics options
+// Probability / Statistics
+const PROBSTAT_OPTIONS = [
   "STAT 309",
   "STAT 311",
   "STAT 324",
@@ -49,17 +49,15 @@ const MAJOR_COURSE_CODES = new Set([
   "STAT 371",
   "STAT 431",
   "MATH 531",
+];
 
-  // Theory of Computer Science
-  "COMP SCI 577",
-  "COMP SCI 520",
-
-  // Software & Hardware bucket (complete two)
+// Software & Hardware (pick 2)
+const SOFTHW_OPTIONS = [
   "COMP SCI 407",
   "COMP SCI 506",
   "COMP SCI 536",
-  "COMP SCI 538",
   "COMP SCI 537",
+  "COMP SCI 538",
   "COMP SCI 542",
   "COMP SCI 544",
   "COMP SCI 552",
@@ -67,15 +65,16 @@ const MAJOR_COURSE_CODES = new Set([
   "COMP SCI 564",
   "COMP SCI 640",
   "COMP SCI 642",
+];
 
-  // Applications bucket (complete one)
+// Applications (pick 1)
+const APPLICATIONS_OPTIONS = [
   "COMP SCI 412",
   "COMP SCI 425",
   "COMP SCI 513",
   "COMP SCI 514",
   "COMP SCI 524",
   "COMP SCI 525",
-  "COMP SCI 534",
   "COMP SCI 540",
   "COMP SCI 541",
   "COMP SCI 559",
@@ -83,18 +82,98 @@ const MAJOR_COURSE_CODES = new Set([
   "COMP SCI 566",
   "COMP SCI 570",
   "COMP SCI 571",
+];
 
-  // Electives bucket (complete two – many overlap above)
+// Electives (pick 2)
+const ELECTIVES_OPTIONS = [
+  "COMP SCI 407",
+  "COMP SCI 412",
+  "COMP SCI 425",
+  "COMP SCI 435",
+  "COMP SCI 471",
+  "COMP SCI 475",
+  "COMP SCI 506",
+  "COMP SCI 513",
+  "COMP SCI 514",
   "COMP SCI 518",
+  "COMP SCI 520",
+  "COMP SCI 524",
+  "COMP SCI 525",
   "COMP SCI 526",
   "COMP SCI 532",
   "COMP SCI 533",
-]);
+  "COMP SCI 534",
+  "COMP SCI 536",
+  "COMP SCI 537",
+  "COMP SCI 538",
+];
 
-const TARGET_MAJOR_CREDITS = 48; // “Requirements for the Major” total
+// How many courses needed from each bucket to satisfy the major
+const REQUIRED_PER_BUCKET = {
+  core: 5, // 240, 252, 300, 354, 400
+  theory: 1,
+  probstat: 1,
+  softhw: 2,
+  apps: 1,
+  elective: 2,
+};
 
 /**
- * Helper to extract array from bucket JSON.
+ * Very rough prerequisite map.
+ * This is not an official list; it just enforces a reasonable ordering:
+ * 200 → 300 → 354/400 → upper-level 5xx.
+ */
+const PREREQ_MAP = {
+  "COMP SCI 252": ["COMP SCI 200"],
+  "COMP SCI 300": ["COMP SCI 200"],
+  "COMP SCI 354": ["COMP SCI 300"],
+  "COMP SCI 400": ["COMP SCI 300"],
+
+  "COMP SCI 407": ["COMP SCI 300"],
+  "COMP SCI 506": ["COMP SCI 400"],
+
+  "COMP SCI 536": ["COMP SCI 354"],
+  "COMP SCI 537": ["COMP SCI 354"],
+  "COMP SCI 538": ["COMP SCI 354"],
+  "COMP SCI 542": ["COMP SCI 354"],
+  "COMP SCI 544": ["COMP SCI 354"],
+  "COMP SCI 552": ["COMP SCI 354"],
+  "COMP SCI 557": ["COMP SCI 354"],
+  "COMP SCI 564": ["COMP SCI 354"],
+  "COMP SCI 640": ["COMP SCI 354"],
+  "COMP SCI 642": ["COMP SCI 354"],
+
+  "COMP SCI 520": ["COMP SCI 300", "COMP SCI 240"],
+  "COMP SCI 577": ["COMP SCI 300", "COMP SCI 240"],
+
+  "COMP SCI 540": ["COMP SCI 400"],
+  "COMP SCI 541": ["COMP SCI 400"],
+  "COMP SCI 559": ["COMP SCI 400"],
+  "COMP SCI 565": ["COMP SCI 400"],
+  "COMP SCI 566": ["COMP SCI 400"],
+  "COMP SCI 570": ["COMP SCI 400"],
+  "COMP SCI 571": ["COMP SCI 300"],
+
+  "COMP SCI 532": ["COMP SCI 354"],
+  "COMP SCI 533": ["COMP SCI 354"],
+  "COMP SCI 534": ["COMP SCI 354"],
+  "COMP SCI 518": ["COMP SCI 300"],
+
+  "COMP SCI 412": ["COMP SCI 300"],
+  "COMP SCI 425": ["COMP SCI 300"],
+  "COMP SCI 513": ["COMP SCI 300"],
+  "COMP SCI 514": ["COMP SCI 300"],
+  "COMP SCI 524": ["COMP SCI 300"],
+  "COMP SCI 525": ["COMP SCI 300"],
+  "COMP SCI 526": ["COMP SCI 524"],
+
+  // prob / stat option example
+  "MATH 331": ["MATH 222"],
+};
+
+/**
+ * Helper to extract course array from bucket JSON (still used for API fetch
+ * even though the planner logic doesn't depend heavily on it).
  */
 function extractBucketArray(json) {
   if (json && json.results && typeof json.results === "object") {
@@ -107,9 +186,17 @@ function extractBucketArray(json) {
 }
 
 /**
+ * Safely get credit value for a code, defaulting to 3 if unknown.
+ */
+function creditFor(code) {
+  const c = getCreditsFromCode(code);
+  return c && c > 0 ? c : 3;
+}
+
+/**
  * Build schedule plan.
  */
-function buildPlan(form, favorites, allCourses, trackPref) {
+function buildPlan(form, favorites, _allCsCourses, trackPref) {
   const {
     semestersLeft,
     takenCoursesText,
@@ -132,74 +219,85 @@ function buildPlan(form, favorites, allCourses, trackPref) {
   const minPerSem = 12;
   const maxPerSem = 18;
   const targetPerSem = Number(preferredLoad) || 15;
+  const MAX_MAJOR_PER_SEM = 3; // at most 3 CS/Math/Stat per term
 
   // taken courses, normalized
   const takenCodes = (takenCoursesText || "")
     .split(/[,;\n]/)
-    .map((s) => s.trim().toUpperCase())
+    .map((s) => norm(s))
     .filter(Boolean);
   const takenSet = new Set(takenCodes);
 
-  // How many "major" credits have already been taken?
-  let takenMajorCredits = 0;
-  for (const code of takenSet) {
-    if (MAJOR_COURSE_CODES.has(code)) {
-      takenMajorCredits += getCreditsFromCode(code) || 0;
-    }
-  }
-  const remainingMajorCredits = Math.max(
-    0,
-    TARGET_MAJOR_CREDITS - takenMajorCredits
-  );
-
-  // favorites (ids are course.code || course.id)
   const favIds = new Set((favorites || []).map((f) => f.id));
-
-  // quiz track codes
   const trackCodes = TRACK_PREF_CODES[trackPref] || [];
   const trackSet = new Set(trackCodes);
 
-  // remaining major courses with preference flags
-  const remainingCourses = allCourses
-    .map((c) => {
-      const rawId = c.code || c.id || "";
-      const id = rawId.toUpperCase();
+  // ---- Bucket setup ----
+  const BUCKETS = {
+    core: CORE_CS,
+    theory: THEORY_OPTIONS,
+    probstat: PROBSTAT_OPTIONS,
+    softhw: SOFTHW_OPTIONS,
+    apps: APPLICATIONS_OPTIONS,
+    elective: ELECTIVES_OPTIONS,
+  };
 
-      // Only consider courses that are part of the CS major requirements
-      if (!MAJOR_COURSE_CODES.has(id)) {
-        return null;
-      }
+  const bucketRemaining = {};
+  Object.entries(BUCKETS).forEach(([bucket, codes]) => {
+    const required = REQUIRED_PER_BUCKET[bucket] || 0;
+    let already = 0;
+    codes.forEach((code) => {
+      if (takenSet.has(norm(code))) already += 1;
+    });
+    bucketRemaining[bucket] = Math.max(0, required - already);
+  });
 
-      const title = c.name || "Untitled Course";
-      const credits = getCreditsFromCode(id);
+  // build candidate course list (only what we still need)
+  const remainingCourses = [];
+  const seen = new Set();
+  const bucketOrder = ["core", "theory", "probstat", "softhw", "apps", "elective"];
 
-      return {
-        id,
-        title,
+  for (const bucket of bucketOrder) {
+    const codes = BUCKETS[bucket];
+    codes.forEach((code) => {
+      const u = norm(code);
+      if (takenSet.has(u)) return;
+      if (seen.has(u)) return;
+      if (bucketRemaining[bucket] <= 0 && bucket !== "core") return;
+
+      const credits = creditFor(code);
+      if (!credits || credits <= 0) return;
+
+      remainingCourses.push({
+        id: code,
         credits,
-        isFavorite: favIds.has(rawId) || favIds.has(id),
-        trackPreferred: trackSet.has(id),
-      };
-    })
-    .filter(
-      (c) =>
-        c &&
-        c.credits > 0 &&
-        !takenSet.has(c.id.toUpperCase())
-    );
+        bucket,
+        isFavorite: favIds.has(code),
+        trackPreferred: trackSet.has(code),
+      });
+      seen.add(u);
+    });
+  }
 
-  // sort by: favorite → trackPreferred → id
+  const bucketPriority = {
+    core: 0,
+    theory: 1,
+    probstat: 1,
+    softhw: 2,
+    apps: 3,
+    elective: 4,
+  };
+
   remainingCourses.sort((a, b) => {
-    if (a.isFavorite !== b.isFavorite) {
-      return a.isFavorite ? -1 : 1;
-    }
-    if (a.trackPreferred !== b.trackPreferred) {
-      return a.trackPreferred ? -1 : 1;
-    }
+    const pa = bucketPriority[a.bucket] ?? 99;
+    const pb = bucketPriority[b.bucket] ?? 99;
+    if (pa !== pb) return pa - pb;
+    if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
+    if (a.trackPreferred !== b.trackPreferred) return a.trackPreferred ? -1 : 1;
     return a.id.localeCompare(b.id);
   });
 
-  // gen-ed + breadth placeholders
+  // ---- gen-ed / breadth placeholders ----
   const placeholders = [];
   if (needsCommA) placeholders.push({ label: "Comm A", credits: 3 });
   if (needsCommB) placeholders.push({ label: "Comm B", credits: 3 });
@@ -220,91 +318,82 @@ function buildPlan(form, favorites, allCourses, trackPref) {
   addBreadthPlaceholders(socRemaining, "Social Science");
   addBreadthPlaceholders(nsRemaining, "Natural Science");
 
-  // allocate over semesters
+  // ---- allocate over semesters ----
   const semesters = [];
-  let courseIdx = 0;
-  let placeholderIdx = 0;
-
-  let plannedMajorCredits = 0;
-
   let year = 2026;
-  let term = "Spring"; // first term after Fall 2025
+  let term = "Spring";
+
+  const remaining = [...remainingCourses];
+  const remainingPlaceholders = [...placeholders];
+
+  // prereqs can only be satisfied by taken + previous semesters
+  const completedSet = new Set(takenSet);
+
+  const prereqsSatisfied = (courseId) => {
+    const reqs = PREREQ_MAP[courseId] || [];
+    return reqs.every((c) => completedSet.has(norm(c)));
+  };
 
   for (let s = 0; s < numSemesters; s++) {
     let total = 0;
+    let majorCount = 0;
     const cs = [];
     const reqs = [];
 
-    const tryAddCourse = () => {
-      // stop scheduling CS once we've hit the major-credit target
-      if (plannedMajorCredits >= remainingMajorCredits) return false;
-      if (courseIdx >= remainingCourses.length) return false;
+    // 1. schedule major courses (max 3) whose prereqs are already completed
+    let madeProgress = true;
+    while (
+      total < targetPerSem &&
+      majorCount < MAX_MAJOR_PER_SEM &&
+      madeProgress
+    ) {
+      madeProgress = false;
 
-      const c = remainingCourses[courseIdx];
-      courseIdx++;
+      for (let i = 0; i < remaining.length; i++) {
+        const c = remaining[i];
 
-      if (total + c.credits <= maxPerSem) {
+        if (bucketRemaining[c.bucket] <= 0) continue;
+        if (majorCount >= MAX_MAJOR_PER_SEM) break;
+        if (total + c.credits > maxPerSem) continue;
+        if (!prereqsSatisfied(c.id)) continue;
+
         cs.push(c);
         total += c.credits;
-        plannedMajorCredits += c.credits;
-        return true;
+        majorCount += 1;
+        bucketRemaining[c.bucket] = Math.max(
+          0,
+          bucketRemaining[c.bucket] - 1
+        );
+        remaining.splice(i, 1);
+        madeProgress = true;
+        break;
       }
-      return false;
-    };
+    }
 
-    const tryAddPlaceholder = () => {
-      if (placeholderIdx >= placeholders.length) return false;
-      const p = placeholders[placeholderIdx];
-      placeholderIdx++;
+    // 2. fill with breadth / gen-ed to reach target
+    let pIndex = 0;
+    while (total < targetPerSem && pIndex < remainingPlaceholders.length) {
+      const p = remainingPlaceholders[pIndex];
       if (total + p.credits <= maxPerSem) {
         reqs.push(p);
         total += p.credits;
-        return true;
+        remainingPlaceholders.splice(pIndex, 1);
+      } else {
+        pIndex += 1;
       }
-      return false;
-    };
-
-    // Fill toward target preferred load
-    while (
-      total < targetPerSem &&
-      (courseIdx < remainingCourses.length ||
-        placeholderIdx < placeholders.length)
-    ) {
-      let picked = false;
-
-      // Prefer major courses until we hit major-credit target
-      if (
-        plannedMajorCredits < remainingMajorCredits &&
-        courseIdx < remainingCourses.length
-      ) {
-        picked = tryAddCourse();
-      }
-
-      // Then (or if no course fits) add breadth / gen-eds
-      if (!picked && placeholderIdx < placeholders.length) {
-        picked = tryAddPlaceholder();
-      }
-
-      if (!picked) break;
     }
 
-    // Try to hit minimum 12 credits
-    while (
-      total < minPerSem &&
-      (courseIdx < remainingCourses.length ||
-        placeholderIdx < placeholders.length)
-    ) {
-      let picked = false;
-      if (
-        plannedMajorCredits < remainingMajorCredits &&
-        courseIdx < remainingCourses.length
-      ) {
-        picked = tryAddCourse();
+    // 3. try to at least hit minimum credits using more placeholders
+    pIndex = 0;
+    while (total < minPerSem && pIndex < remainingPlaceholders.length) {
+      const p = remainingPlaceholders[pIndex];
+      if (total + p.credits <= maxPerSem) {
+        reqs.push(p);
+        total += p.credits;
+        remainingPlaceholders.splice(pIndex, 1);
+      } else {
+        pIndex += 1;
       }
-      if (!picked && placeholderIdx < placeholders.length) {
-        picked = tryAddPlaceholder();
-      }
-      if (!picked) break;
     }
 
     semesters.push({
@@ -313,6 +402,10 @@ function buildPlan(form, favorites, allCourses, trackPref) {
       cs,
       placeholders: reqs,
     });
+
+    // AFTER the semester is done, mark its courses as completed so
+    // later semesters can use them as prerequisites.
+    cs.forEach((c) => completedSet.add(norm(c.id)));
 
     if (term === "Spring") {
       term = "Fall";
@@ -324,13 +417,13 @@ function buildPlan(form, favorites, allCourses, trackPref) {
 
   return {
     semesters,
-    leftoverCourses: remainingCourses.slice(courseIdx),
-    leftoverPlaceholders: placeholders.slice(placeholderIdx),
+    leftoverCourses: remaining,
+    leftoverPlaceholders: remainingPlaceholders,
   };
 }
 
 export default function Scheduling({ favorites = [] }) {
-  const [courses, setCourses] = useState([]);
+  const [csCourses, setCsCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -359,7 +452,7 @@ export default function Scheduling({ favorites = [] }) {
     if (stored) setTrackPref(stored);
   }, []);
 
-  // load courses (we'll later filter to only those in MAJOR_COURSE_CODES)
+  // load courses (still fetched for completeness, not heavily used)
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -379,11 +472,11 @@ export default function Scheduling({ favorites = [] }) {
         }
         const json = await res.json();
         const arr = extractBucketArray(json);
-        setCourses(arr);
+        setCsCourses(arr);
       } catch (err) {
         console.error(err);
         setLoadError("Could not load course data for scheduling.");
-        setCourses([]);
+        setCsCourses([]);
       } finally {
         setLoading(false);
       }
@@ -401,7 +494,7 @@ export default function Scheduling({ favorites = [] }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const built = buildPlan(form, favorites, courses, trackPref);
+    const built = buildPlan(form, favorites, csCourses, trackPref);
     setPlan(built);
   };
 
@@ -412,9 +505,9 @@ export default function Scheduling({ favorites = [] }) {
       {trackPref && (
         <div className="track-banner">
           Using your quiz track:{" "}
-          <strong>
-            {trackPref.charAt(0).toUpperCase() + trackPref.slice(1)}
-          </strong>
+            <strong>
+              {trackPref.charAt(0).toUpperCase() + trackPref.slice(1)}
+            </strong>
         </div>
       )}
 
@@ -422,7 +515,7 @@ export default function Scheduling({ favorites = [] }) {
       {loadError && <p className="error-text">{loadError}</p>}
 
       <div className="schedule-layout">
-        {/* Left: form */}
+        {/* Left: quiz-like form */}
         <form className="schedule-form" onSubmit={handleSubmit}>
           <h3>Your Situation</h3>
 
@@ -450,14 +543,14 @@ export default function Scheduling({ favorites = [] }) {
           </label>
 
           <label>
-            Which CS/Math/Stat courses have you already completed?{" "}
+            Which CS courses have you already completed?{" "}
             <span className="hint">(Separate with commas or new lines.)</span>
             <textarea
               name="takenCoursesText"
               rows={4}
               value={form.takenCoursesText}
               onChange={handleChange}
-              placeholder="Example: COMP SCI 240, COMP SCI 300, MATH 221"
+              placeholder="Example: COMP SCI 200, COMP SCI 240, COMP SCI 300"
             />
           </label>
 
