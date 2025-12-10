@@ -14,8 +14,18 @@ function norm(code) {
   return (code || "").replace(/\s+/g, " ").trim().toUpperCase();
 }
 
-const CORE_CS = ["COMP SCI 240", "COMP SCI 252", "COMP SCI 300", "COMP SCI 354", "COMP SCI 400"];
-const THEORY_OPTIONS = ["COMP SCI 577", "COMP SCI 520"];
+const CORE_CS = [
+  "COMP SCI 200", 
+  "COMP SCI 240", 
+  "COMP SCI 252", 
+  "COMP SCI 300", 
+  "COMP SCI 354", 
+  "COMP SCI 400",
+  "COMP SCI 577"
+];
+
+const THEORY_OPTIONS = ["COMP SCI 520", "COMP SCI 577"]; 
+
 const PROBSTAT_OPTIONS = [
   "STAT 309", "STAT 311", "STAT 324", "MATH 331", 
   "STAT 333", "STAT 340", "STAT 371", "STAT 431", "MATH 531"
@@ -39,14 +49,24 @@ const ELECTIVES_OPTIONS = [
 ];
 
 const REQUIRED_PER_BUCKET = {
-  core: 5, theory: 1, probstat: 1, softhw: 2, apps: 1, elective: 2
+  core: 7, 
+  theory: 0, 
+  probstat: 1, 
+  softhw: 2, 
+  apps: 1, 
+  elective: 2
 };
 
 const PREREQ_MAP = {
+  "COMP SCI 240": ["COMP SCI 200"], 
   "COMP SCI 252": ["COMP SCI 200"],
-  "COMP SCI 300": ["COMP SCI 200"],
-  "COMP SCI 354": ["COMP SCI 300"],
-  "COMP SCI 400": ["COMP SCI 300"],
+  "COMP SCI 300": ["COMP SCI 200"], 
+  "COMP SCI 354": ["COMP SCI 300"], 
+  "COMP SCI 400": ["COMP SCI 300"], 
+  
+  "COMP SCI 577": ["COMP SCI 240", "COMP SCI 300"], 
+  "COMP SCI 520": ["COMP SCI 300", "COMP SCI 240"],
+  
   "COMP SCI 407": ["COMP SCI 300"],
   "COMP SCI 506": ["COMP SCI 400"],
   "COMP SCI 536": ["COMP SCI 354"],
@@ -59,15 +79,15 @@ const PREREQ_MAP = {
   "COMP SCI 564": ["COMP SCI 354"],
   "COMP SCI 640": ["COMP SCI 354"],
   "COMP SCI 642": ["COMP SCI 354"],
-  "COMP SCI 520": ["COMP SCI 300", "COMP SCI 240"],
-  "COMP SCI 577": ["COMP SCI 300", "COMP SCI 240"],
-  "COMP SCI 540": ["COMP SCI 400"],
+  
+  "COMP SCI 540": ["COMP SCI 400"], 
   "COMP SCI 541": ["COMP SCI 400"],
   "COMP SCI 559": ["COMP SCI 400"],
   "COMP SCI 565": ["COMP SCI 400"],
   "COMP SCI 566": ["COMP SCI 400"],
   "COMP SCI 570": ["COMP SCI 400"],
   "COMP SCI 571": ["COMP SCI 300"],
+
   "COMP SCI 532": ["COMP SCI 354"],
   "COMP SCI 533": ["COMP SCI 354"],
   "COMP SCI 534": ["COMP SCI 354"],
@@ -170,16 +190,13 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
   };
 
   remainingCourses.sort((a, b) => {
-    const needA = initialBucketNeeds[a.bucket] > 0;
-    const needB = initialBucketNeeds[b.bucket] > 0;
+    const needA = currentBucketNeeds[a.bucket] > 0;
+    const needB = currentBucketNeeds[b.bucket] > 0;
     if (needA !== needB) return needA ? -1 : 1;
 
     const pa = bucketPriority[a.bucket] ?? 99;
     const pb = bucketPriority[b.bucket] ?? 99;
     if (pa !== pb) return pa - pb;
-
-    if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
-    if (a.trackPreferred !== b.trackPreferred) return a.trackPreferred ? -1 : 1;
 
     return a.id.localeCompare(b.id);
   });
@@ -279,7 +296,6 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
   return { semesters, leftoverCourses: remainingCandidates, leftoverPlaceholders: remainingPlaceholders };
 }
 
-
 export default function Scheduling({ favorites = [] }) {
   const [csCourses, setCsCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -344,7 +360,7 @@ export default function Scheduling({ favorites = [] }) {
 
       <div className="schedule-layout">
         <form className="schedule-form" onSubmit={handleSubmit}>
-          <h3>Your Situation</h3>
+          <h3>Your Information</h3>
           <label>Academic standing:
             <input type="text" name="standing" value={form.standing} onChange={handleChange} placeholder="e.g., Sophomore" />
           </label>
