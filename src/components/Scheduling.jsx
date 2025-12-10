@@ -312,12 +312,9 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
 
     // Choice buckets: only schedule ONE course (unless favorites)
     if ((bucket === "mathLA" || bucket === "probstat") && bucketNeed > 0) {
-      // candidates from this bucket
       const options = codes.filter((code) => !takenSet.has(norm(code)));
-
       if (options.length === 0) continue;
 
-      // build temp list with prefs
       const temp = options.map((code) => {
         const u = norm(code);
         const credits = creditFor(code);
@@ -330,7 +327,6 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
         };
       });
 
-      // prefer favorites if any, otherwise smallest code
       temp.sort((a, b) => {
         const prefA = preferenceScore(a);
         const prefB = preferenceScore(b);
@@ -344,7 +340,7 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
         seen.add(norm(chosen.id));
       }
 
-      // Also allow any extra math from this bucket if explicitly favorited
+      // allow extra math from bucket only if favorited
       temp.slice(1).forEach((c) => {
         if (c.isFavorite && !seen.has(norm(c.id)) && c.credits > 0) {
           remainingCourses.push(c);
@@ -355,7 +351,7 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
       continue;
     }
 
-    // All other buckets: add everything (normal behavior)
+    // All other buckets: add everything
     codes.forEach((code) => {
       const u = norm(code);
       if (takenSet.has(u)) return;
@@ -449,6 +445,9 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
     const cs = [];
     const reqs = [];
 
+    // track which breadth/gen-ed labels already used THIS semester
+    const usedPlaceholderLabels = new Set();
+
     let madeProgress = true;
     while (
       total < targetPerSem &&
@@ -483,25 +482,40 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
       }
     }
 
-    // Fill with breadth / gen-ed
+    // Fill with breadth / gen-ed (no duplicate labels in same semester)
     let pIndex = 0;
     while (total < targetPerSem && pIndex < remainingPlaceholders.length) {
       const p = remainingPlaceholders[pIndex];
+
+      if (usedPlaceholderLabels.has(p.label)) {
+        pIndex += 1;
+        continue;
+      }
+
       if (total + p.credits <= maxPerSem) {
         reqs.push(p);
         total += p.credits;
+        usedPlaceholderLabels.add(p.label);
         remainingPlaceholders.splice(pIndex, 1);
       } else {
         pIndex += 1;
       }
     }
 
+    // If still below minimum, keep stuffing BUT still respect uniqueness
     pIndex = 0;
     while (total < minPerSem && pIndex < remainingPlaceholders.length) {
       const p = remainingPlaceholders[pIndex];
+
+      if (usedPlaceholderLabels.has(p.label)) {
+        pIndex += 1;
+        continue;
+      }
+
       if (total + p.credits <= maxPerSem) {
         reqs.push(p);
         total += p.credits;
+        usedPlaceholderLabels.add(p.label);
         remainingPlaceholders.splice(pIndex, 1);
       } else {
         pIndex += 1;
