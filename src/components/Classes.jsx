@@ -130,21 +130,22 @@ export default function Classes({ favorites, onToggleFavorite }) {
   };
 
   // CS courses obey subject filter
-  const visibleCs = (!loading && !errorMsg ? csCourses : []).filter(
+const visibleCs = (!loading && !errorMsg ? csCourses : []).filter(
     (course) => {
+      if (subjectFilter === "external") return false;
+
       if (!matchesSearch(course)) return false;
       const isCsSubject = (course.code || "").startsWith("COMP SCI");
       if (subjectFilter === "cs") {
         return isCsSubject;
       }
-      // "All Subjects" -> include all CS bucket courses
       return true;
     }
   );
 
   // External prereq courses only show when "All Subjects" is selected
   const visibleExternal =
-    !loading && !errorMsg && subjectFilter === ""
+    !loading && !errorMsg && (subjectFilter === "" || subjectFilter === "external")
       ? externalCourses.filter(matchesSearch)
       : [];
 
@@ -171,6 +172,7 @@ export default function Classes({ favorites, onToggleFavorite }) {
         >
           <option value="">All Subjects</option>
           <option value="cs">Computer Science</option>
+          <option value="external">External/Non-CS</option>
         </select>
         {/* Gen Ed filter intentionally removed */}
       </div>

@@ -149,40 +149,60 @@
     margin-bottom: 0.25rem;
   }
   
-  .course-line {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    font-size: 0.9rem;
-  }
-  
-  .course-credits {
-    font-size: 0.8rem;
-    color: #4b5563;
-  }
-  
-  .empty-text {
-    font-size: 0.85rem;
-    color: #9ca3af;
-  }
-  
-  .pill {
-    font-size: 0.7rem;
-    padding: 0.1rem 0.4rem;
-    border-radius: 999px;
-    margin-left: 0.3rem;
-  }
-  
-  .pill-fav {
-    background: #fee2e2;
-    color: #b91c1c;
-  }
-  
-  .pill-track {
-    background: #e0f2fe;
-    color: #0369a1;
-  }
+.course-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.course-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.course-id-text {
+  font-weight: 600;
+  color: #333;
+}
+
+.course-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 60px;
+  justify-content: flex-end;
+}
+
+.course-credits {
+  background-color: #eee;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: #555;
+  white-space: nowrap;
+}
+
+.pill {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pill-fav {
+  background-color: #e53935;
+}
+
+.pill-track {
+  background-color: #1976d2; /* Blue */
+}
+
   
   .leftovers {
     margin-top: 1.5rem;

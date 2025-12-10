@@ -6,6 +6,12 @@ export default function ClassCard({ course, isFavorite, onToggleFavorite }) {
     <div className="class-card">
       <div className="card-header">
         <span className="course-id">{course.id}</span>
+        
+        {typeof course.credits === "number" && (
+          <span className="course-credits">
+            {course.credits} Credit{course.credits !== 1 ? "s" : ""}
+          </span>
+        )}
       </div>
 
       <h3 className="course-title">{course.title}</h3>
@@ -16,13 +22,6 @@ export default function ClassCard({ course, isFavorite, onToggleFavorite }) {
         {course.category && (
           <span className="course-tag category-tag">
             {course.category}
-          </span>
-        )}
-
-        {/* CREDITS — NEW */}
-        {typeof course.credits === "number" && (
-          <span className="course-tag credit-tag">
-            {course.credits} credit{course.credits !== 1 ? "s" : ""}
           </span>
         )}
 

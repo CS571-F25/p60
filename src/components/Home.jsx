@@ -1,6 +1,6 @@
 import './Home.css'; 
 import MorgImage from '../assets/morg.jpg';
-import { Link } from 'react-router-dom'; // Added Import
+import { Link } from 'react-router-dom';
 
 export default function Home() {
   return (
