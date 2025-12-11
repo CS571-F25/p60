@@ -1,9 +1,7 @@
-// src/components/Scheduling.jsx
 import { useEffect, useState } from "react";
 import { getCreditsFromCode } from "../utils/credits";
 import "./Scheduling.css";
 
-// ====================== TRACKS ======================
 
 const TRACK_PREF_CODES = {
   frontend: ["COMP SCI 571", "COMP SCI 506", "COMP SCI 579", "COMP SCI 412"],
@@ -16,7 +14,6 @@ function norm(code) {
   return (code || "").replace(/\s+/g, " ").trim().toUpperCase();
 }
 
-// ====================== BUCKETS ======================
 
 // Core CS courses
 const CORE_CS = [
@@ -29,10 +26,8 @@ const CORE_CS = [
   "COMP SCI 577",
 ];
 
-// (Optional) theory bucket
 const THEORY_OPTIONS = ["COMP SCI 520", "COMP SCI 577"];
 
-// Prob / Stat bucket – “complete one of”
 const PROBSTAT_OPTIONS = [
   "STAT 309",
   "STAT 311",
@@ -45,7 +40,6 @@ const PROBSTAT_OPTIONS = [
   "MATH 531",
 ];
 
-// Software/Hardware bucket
 const SOFTHW_OPTIONS = [
   "COMP SCI 407",
   "COMP SCI 506",
@@ -61,7 +55,6 @@ const SOFTHW_OPTIONS = [
   "COMP SCI 642",
 ];
 
-// Applications bucket
 const APPLICATIONS_OPTIONS = [
   "COMP SCI 412",
   "COMP SCI 425",
@@ -78,7 +71,6 @@ const APPLICATIONS_OPTIONS = [
   "COMP SCI 571",
 ];
 
-// General CS electives bucket
 const ELECTIVES_OPTIONS = [
   "COMP SCI 407",
   "COMP SCI 412",
@@ -102,15 +94,12 @@ const ELECTIVES_OPTIONS = [
   "COMP SCI 538",
 ];
 
-// ==== Math requirements ====
 
-// Simple path MATH 221 + MATH 222.
 const MATH_CALC_SEQ = [
   "MATH 221", // Calc I
   "MATH 222", // Calc II
 ];
 
-// “Complete one of” these Linear Algebra options
 const MATH_LINALG_OPTIONS = [
   "MATH 320",
   "MATH 340",
@@ -119,22 +108,19 @@ const MATH_LINALG_OPTIONS = [
   "MATH 375",
 ];
 
-// How many *courses* from each bucket we want
 const REQUIRED_PER_BUCKET = {
-  core: 7,       // CS core
-  mathCalc: 2,   // MATH 221 + 222
-  mathLA: 1,     // one linear algebra
-  theory: 0,     // optional
-  probstat: 1,   // one prob/stat
+  core: 7,
+  mathCalc: 2,
+  mathLA: 1,
+  theory: 0,
+  probstat: 1,
   softhw: 2,
   apps: 1,
   elective: 2,
 };
 
-// ====================== PREREQUISITES ======================
 
 const PREREQ_MAP = {
-  // ---- CS core ----
   "COMP SCI 240": ["COMP SCI 200", "MATH 222"],
   "COMP SCI 252": ["COMP SCI 200"],
   "COMP SCI 300": ["COMP SCI 200"],
@@ -144,7 +130,6 @@ const PREREQ_MAP = {
   "COMP SCI 577": ["COMP SCI 240", "COMP SCI 300"],
   "COMP SCI 520": ["COMP SCI 300", "COMP SCI 240"],
 
-  // ---- systems / hw / sw ----
   "COMP SCI 407": ["COMP SCI 300"],
   "COMP SCI 506": ["COMP SCI 400"],
   "COMP SCI 536": ["COMP SCI 354"],
@@ -158,7 +143,6 @@ const PREREQ_MAP = {
   "COMP SCI 640": ["COMP SCI 354"],
   "COMP SCI 642": ["COMP SCI 354"],
 
-  // ---- apps / graphics / etc. ----
   "COMP SCI 540": ["COMP SCI 400"],
   "COMP SCI 541": ["COMP SCI 400"],
   "COMP SCI 559": ["COMP SCI 400"],
@@ -177,24 +161,20 @@ const PREREQ_MAP = {
   "COMP SCI 514": ["COMP SCI 300"],
   "COMP SCI 524": ["COMP SCI 300"],
   "COMP SCI 525": ["COMP SCI 300"],
-  "COMP SCI 526": ["COMP SCI 524"],
+  "COMP SCI   526": ["COMP SCI 524"],
 
-  // ---- Math chain ----
   "MATH 222": ["MATH 221"],
   "MATH 234": ["MATH 222"],
 
-  // Linear Algebra options all require Calc II
   "MATH 320": ["MATH 222"],
   "MATH 340": ["MATH 222"],
   "MATH 345": ["MATH 222"],
   "MATH 341": ["MATH 222"],
   "MATH 375": ["MATH 222"],
 
-  // Prob / Stat
   "MATH 331": ["MATH 222"],
 };
 
-// ====================== HELPERS ======================
 
 function extractBucketArray(json) {
   if (json && json.results && typeof json.results === "object") {
@@ -211,7 +191,6 @@ function creditFor(code) {
   return c && c > 0 ? c : 3;
 }
 
-// preference score: favorites > quiz-track > others
 function preferenceScore(course) {
   let score = 0;
   if (course.isFavorite) score += 2;
@@ -219,7 +198,6 @@ function preferenceScore(course) {
   return score;
 }
 
-// Make CS 300 and CS 400 come first among core courses
 function earlyCoreRank(id) {
   const code = norm(id);
   if (code === "COMP SCI 300") return 0;
@@ -227,7 +205,6 @@ function earlyCoreRank(id) {
   return 10;
 }
 
-// ====================== PLAN BUILDER ======================
 
 function buildPlan(form, favorites, _allCsCourses, trackPref) {
   const {
@@ -253,12 +230,10 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
   const maxPerSem = 18;
   const targetPerSem = Number(preferredLoad) || 15;
 
-  // rule-of-thumb caps
-  const MAX_MAJOR_PER_SEM = 3; // total CS/Math/Stat
-  const MAX_CS_PER_SEM = 2;    // up to 2 COMP SCI
-  const MAX_NONCS_PER_SEM = 1; // up to 1 Math/Stat
+  const MAX_MAJOR_PER_SEM = 3;
+  const MAX_CS_PER_SEM = 2;
+  const MAX_NONCS_PER_SEM = 1;
 
-  // normalize "taken" list
   const takenCodes = (takenCoursesText || "")
     .split(/[,;\n]/)
     .map((s) => norm(s))
@@ -305,12 +280,10 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
     "elective",
   ];
 
-  // ========= candidate construction (limit mathLA + probstat) =========
   for (const bucket of bucketKeys) {
     const codes = BUCKETS[bucket];
     const bucketNeed = initialBucketNeeds[bucket] || 0;
 
-    // Choice buckets: only schedule ONE course (unless favorites)
     if ((bucket === "mathLA" || bucket === "probstat") && bucketNeed > 0) {
       const options = codes.filter((code) => !takenSet.has(norm(code)));
       if (options.length === 0) continue;
@@ -340,7 +313,6 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
         seen.add(norm(chosen.id));
       }
 
-      // allow extra math from bucket only if favorited
       temp.slice(1).forEach((c) => {
         if (c.isFavorite && !seen.has(norm(c.id)) && c.credits > 0) {
           remainingCourses.push(c);
@@ -351,7 +323,6 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
       continue;
     }
 
-    // All other buckets: add everything
     codes.forEach((code) => {
       const u = norm(code);
       if (takenSet.has(u)) return;
@@ -382,7 +353,6 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
     elective: 7,
   };
 
-  // ==== SORT: bucket need → early core (300/400) → preference → bucket priority
   remainingCourses.sort((a, b) => {
     const needA = currentBucketNeeds[a.bucket] > 0;
     const needB = currentBucketNeeds[b.bucket] > 0;
@@ -403,7 +373,6 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
     return a.id.localeCompare(b.id);
   });
 
-  // Gen-ed / breadth placeholders
   const placeholders = [];
   if (needsCommA) placeholders.push({ label: "Comm A", credits: 3 });
   if (needsCommB) placeholders.push({ label: "Comm B", credits: 3 });
@@ -445,7 +414,6 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
     const cs = [];
     const reqs = [];
 
-    // track which breadth/gen-ed labels already used THIS semester
     const usedPlaceholderLabels = new Set();
 
     let madeProgress = true;
@@ -482,7 +450,6 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
       }
     }
 
-    // Fill with breadth / gen-ed (no duplicate labels in same semester)
     let pIndex = 0;
     while (total < targetPerSem && pIndex < remainingPlaceholders.length) {
       const p = remainingPlaceholders[pIndex];
@@ -502,7 +469,6 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
       }
     }
 
-    // If still below minimum, keep stuffing BUT still respect uniqueness
     pIndex = 0;
     while (total < minPerSem && pIndex < remainingPlaceholders.length) {
       const p = remainingPlaceholders[pIndex];
@@ -546,7 +512,6 @@ function buildPlan(form, favorites, _allCsCourses, trackPref) {
   };
 }
 
-// ====================== COMPONENT ======================
 
 export default function Scheduling({ favorites = [] }) {
   const [csCourses, setCsCourses] = useState([]);

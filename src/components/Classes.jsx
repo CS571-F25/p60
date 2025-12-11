@@ -1,10 +1,8 @@
-// src/components/Classes.jsx
 import { useEffect, useState } from "react";
 import ClassCard from "./ClassCard";
 import "./Classes.css";
 import { getCreditsFromCode } from "../utils/credits";
 
-// ====== prereq cleanup helpers ======
 const PREREQ_ALIASES = {
   "COMP SCI 102": "COMP SCI / LIS 102",
   "MATH/COMP SCI 240": "COMP SCI / MATH 240",
@@ -30,7 +28,6 @@ function cleanPrereqs(rawList = []) {
     .filter((p) => p && !LEGACY_CS.has(p));
 }
 
-// Helper to safely dig into bucket JSON
 function extractBucketArray(json) {
   if (json && json.results && typeof json.results === "object") {
     const keys = Object.keys(json.results);
@@ -41,7 +38,6 @@ function extractBucketArray(json) {
   return [];
 }
 
-// Turn raw API course into what ClassCard expects
 function toCardCourse(rawCourse) {
   const id = rawCourse.code || rawCourse.id;
   return {
@@ -54,7 +50,6 @@ function toCardCourse(rawCourse) {
   };
 }
 
-// ====== main component ======
 export default function Classes({ favorites, onToggleFavorite }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState(""); // "" = all, "cs" = CS only
@@ -88,7 +83,6 @@ export default function Classes({ favorites, onToggleFavorite }) {
           throw new Error(`CS API error: ${csRes.status} ${csRes.statusText}`);
         }
         if (!extRes.ok) {
-          // external failing shouldn’t kill the whole page; log & continue
           console.warn(
             `External API error: ${extRes.status} ${extRes.statusText}`
           );
@@ -129,7 +123,6 @@ export default function Classes({ favorites, onToggleFavorite }) {
     return name.includes(query) || code.includes(query);
   };
 
-  // CS courses obey subject filter
 const visibleCs = (!loading && !errorMsg ? csCourses : []).filter(
     (course) => {
       if (subjectFilter === "external") return false;
@@ -174,7 +167,6 @@ const visibleCs = (!loading && !errorMsg ? csCourses : []).filter(
           <option value="cs">Computer Science</option>
           <option value="external">External/Non-CS</option>
         </select>
-        {/* Gen Ed filter intentionally removed */}
       </div>
 
       <div className="class-grid-container">
